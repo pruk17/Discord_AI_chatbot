@@ -1,0 +1,11 @@
+# Discord library — handles the gateway connection and event callbacks
+# (the subscribe/callback model similar to ROS topics).
+discord.py>=2.4.0
+
+# OpenAI SDK — OpenRouter is OpenAI-compatible, so we use this client and
+# just point its base_url at OpenRouter.
+openai>=1.40.0
+
+# Loads variables from a .env file into the environment so we never
+# hard-code secrets in the source code.
+python-dotenv>=1.0.1

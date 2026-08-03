@@ -1,0 +1,26 @@
+# systemd service template for running the bot 24/7 on Raspberry Pi (Ubuntu).
+#
+# 1. Edit the paths/User below to match your Pi.
+# 2. Copy to:   sudo cp discord-ai-bot.service /etc/systemd/system/
+# 3. Enable:    sudo systemctl daemon-reload
+#               sudo systemctl enable --now discord-ai-bot
+# 4. Logs:      journalctl -u discord-ai-bot -f
+
+[Unit]
+Description=Discord AI Chatbot (Claude)
+# Wait for the network to be up before starting.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/AI_chatbot
+# Use the Python inside the virtual environment so all packages are found.
+ExecStart=/home/pi/AI_chatbot/venv/bin/python /home/pi/AI_chatbot/bot.py
+# Restart automatically if the bot crashes.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
