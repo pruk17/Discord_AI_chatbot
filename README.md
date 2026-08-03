@@ -87,7 +87,7 @@ Copy-Item .env.example .env
 python bot.py
 ```
 
-ถ้าขึ้น `Logged in as ...` และ`Bot is online` แปลว่าใช้ได้แล้ว
+ถ้าขึ้น `Logged in as ...` และ `Bot is online` แปลว่าใช้ได้แล้ว
 ไปที่ห้องแชทในเซิร์ฟเวอร์ พิมพ์ `@ชื่อบอท สวัสดี` แล้วรอบอทตอบ
 
 > ปิดบอท: กด **Ctrl + C** ใน PowerShell (บอทจะออฟไลน์ทันที)
@@ -193,5 +193,3 @@ sudo systemctl stop discord-ai-bot     # หยุด
 ```
 
 ตั้ง `enable` ไว้แล้ว = เปิดเครื่อง Pi เมื่อไหร่บอทก็ขึ้นเองอัตโนมัติ = **ออนไลน์ตลอด** ✅
-#   D i s c o r d _ A I _ c h a t b o t  
- 
