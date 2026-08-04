@@ -49,6 +49,9 @@ OPENROUTER_MODEL = os.getenv(
 MODELS = [m.strip() for m in OPENROUTER_MODEL.split(",") if m.strip()]
 
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
+# Lower temperature = more consistent, stable style; higher = more creative and
+# prone to drifting. 0.5–0.7 keeps the personality steady.
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.6"))
 HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "10"))
 USER_COOLDOWN_SECONDS = float(os.getenv("USER_COOLDOWN_SECONDS", "5"))
 DB_PATH = os.getenv("HISTORY_DB", "chat_history.db")
@@ -296,6 +299,22 @@ def _server_roster(guild) -> str:
     )
 
 
+# Keywords that suggest the message needs the member/role roster. Only then do
+# we attach it, to avoid wasting hundreds of tokens on unrelated questions.
+_ROSTER_KEYWORDS = (
+    "ใคร", "role", "บทบาท", "สมาชิก", "member", "admin", "แอดมิน", "mod",
+    "mention", "เมนชั่น", "แท็ก", "tag", "เรียก", "ยศ", "who",
+)
+
+
+def _needs_roster(user_text: str) -> bool:
+    """Heuristic: does this message likely need the member/role list?"""
+    if "<@" in user_text:  # already contains a mention
+        return True
+    lowered = user_text.lower()
+    return any(k in lowered for k in _ROSTER_KEYWORDS)
+
+
 async def _ask_model(user_text: str, author: str, guild) -> str:
     """Send system prompt + facts + roster + history + message; fall back on errors."""
     now = datetime.datetime.now(LOCAL_TZ)
@@ -303,9 +322,9 @@ async def _ask_model(user_text: str, author: str, guild) -> str:
         f"\n\nThe current date and time is {now:%Y-%m-%d %H:%M} ({now:%A}). "
         "This is the real current time — use it whenever asked about the date or time."
     )
-    system_content = (
-        SYSTEM_PROMPT + MEMORY_NOTE + time_note + _server_roster(guild) + _facts_block()
-    )
+    # Only attach the (potentially large) roster when the question seems to need it.
+    roster = _server_roster(guild) if _needs_roster(user_text) else ""
+    system_content = SYSTEM_PROMPT + MEMORY_NOTE + time_note + roster + _facts_block()
     messages = [{"role": "system", "content": system_content}]
     messages.extend(_format_for_model(e) for e in shared_history)
     messages.append({"role": "user", "content": f"{author}: {user_text}"})
@@ -316,6 +335,7 @@ async def _ask_model(user_text: str, author: str, guild) -> str:
             response = await ai.chat.completions.create(
                 model=model,
                 max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE,
                 messages=messages,
             )
         except APIStatusError as exc:
@@ -650,15 +670,31 @@ async def on_message(message: discord.Message):
             reply = await _ask_model(user_text, author_name, message.guild)
     except APIStatusError as exc:
         log.exception("OpenRouter API error")
+        if exc.status_code == 429:
+            if "free-models-per-day" in str(exc):
+                # Daily free quota exhausted — tell them when it resets (00:00 UTC).
+                total_min = int(round(TZ_OFFSET_HOURS * 60)) % (24 * 60)
+                rh, rm = divmod(total_min, 60)
+                await message.reply(
+                    f"โควตาฟรีวันนี้หมดแล้ว 😴 เดี๋ยวรีเซ็ตราวๆ {rh:02d}:{rm:02d} น. นะ~\n"
+                    "ระหว่างนี้ใช้ `/roll` `/calc` `/whoami` และคำสั่งอื่นที่ไม่ใช้ AI ได้เลย",
+                    mention_author=False,
+                )
+            else:
+                await message.reply(
+                    "ตอนนี้โมเดลไม่ว่าง (คิวเต็ม) รอสักครู่แล้วลองใหม่นะ 🙏",
+                    mention_author=False,
+                )
+            return
         await message.reply(
-            f"Sorry, the AI service returned an error ({exc.status_code}).",
+            f"ขอโทษนะ ระบบ AI มีปัญหา (error {exc.status_code}) ลองใหม่อีกทีนะ",
             mention_author=False,
         )
         return
     except Exception:
         log.exception("Unexpected error while handling a message")
         await message.reply(
-            "Sorry, something went wrong while contacting the AI.", mention_author=False
+            "ขอโทษนะ มีบางอย่างผิดพลาดตอนติดต่อ AI ลองใหม่อีกทีนะ", mention_author=False
         )
         return
 
