@@ -1,6 +1,8 @@
 # Discord library — handles the gateway connection and event callbacks
 # (the subscribe/callback model similar to ROS topics).
-discord.py>=2.4.0
+# The [voice] extra pulls the voice dependencies (e.g. davey, PyNaCl) needed
+# for the bot to join voice channels.
+discord.py[voice]>=2.4.0
 
 # OpenAI SDK — OpenRouter is OpenAI-compatible, so we use this client and
 # just point its base_url at OpenRouter.
