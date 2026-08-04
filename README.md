@@ -15,6 +15,7 @@
 | `.env.example` | ตัวอย่างการตั้งค่า — ก๊อปเป็น `.env` แล้วใส่ค่าจริง |
 | `.gitignore` | กัน `.env`, `venv/`, `*.db` ไม่ให้ขึ้น git |
 | `chat_history.db` | ไฟล์ความจำ (SQLite) — สร้างอัตโนมัติเมื่อรันครั้งแรก |
+| `sounds/` | โฟลเดอร์ไฟล์เสียงสำหรับ `/join`, `/kuru` (สร้างเอง) |
 | `discord-ai-bot.service` | เทมเพลต systemd สำหรับรัน 24 ชม. บน Raspberry Pi |
 
 ---
@@ -23,12 +24,12 @@
 
 1. เข้า https://discord.com/developers/applications → **New Application**
 2. เมนู **Bot** → **Reset Token** → **Copy** เก็บ **Bot Token** ไว้ (ใส่ลง `.env`)
-3. ในหน้า **Bot** เลื่อนลงไปที่ **Privileged Gateway Intents** →
-   เปิด **MESSAGE CONTENT INTENT** ให้เป็นสีเขียว
-   *(ไม่เปิด = บอทอ่านข้อความไม่ได้ จะตอบไม่ได้เลย)*
+3. ในหน้า **Bot** เลื่อนลงไปที่ **Privileged Gateway Intents** แล้วกด Save Changes:
+   - เปิด **MESSAGE CONTENT INTENT** (จำเป็น — ไม่งั้นบอทอ่านข้อความไม่ได้)
+   - เปิด **SERVER MEMBERS INTENT** *(เฉพาะถ้าจะใช้ `/roles` `/members` หรือให้ AI รู้จักสมาชิก — ต้องตั้ง `ENABLE_MEMBERS=true` คู่กัน)*
 4. เมนู **OAuth2 → URL Generator**:
-   - **Scopes**: ติ๊ก `bot`
-   - **Bot Permissions**: ติ๊ก `Send Messages`, `Read Message History`
+   - **Scopes**: ติ๊ก `bot` **และ `applications.commands`** *(อันหลังจำเป็นสำหรับคำสั่ง `/`)*
+   - **Bot Permissions**: `Send Messages`, `Read Message History` *(เพิ่ม `Connect`, `Speak` ถ้าจะใช้ช่องเสียง)*
    - ก๊อป URL ด้านล่างไปเปิดในเบราว์เซอร์ → เลือกเซิร์ฟเวอร์ → เชิญบอทเข้า
 
 ## ขั้นที่ 2 — เอา API Key ของ OpenRouter
@@ -94,14 +95,22 @@ python bot.py
 
 ---
 
-## เงื่อนไขการตอบ
+## บอทตอบยังไง (แชท AI vs คำสั่ง)
 
-ตอนนี้บอทตอบเฉพาะเมื่อถูก **@mention** เท่านั้น (กันไม่ให้ตอบทุกข้อความจนรก)
-ถ้าอยากปรับ ให้แก้ในฟังก์ชัน `on_message` ของ `bot.py`:
+บอทแยกเป็น 2 ทาง — คนละกลไกกัน:
 
-- **อยากให้ตอบทุกข้อความในห้อง** → ลบเงื่อนไข `if client.user not in message.mentions: return`
-- **อยากให้ตอบเฉพาะบางห้อง** → เช็ก `message.channel.id` ให้ตรงกับ ID ห้องที่ต้องการ
-- **อยากให้ตอบเมื่อขึ้นต้นด้วยคำสั่ง** เช่น `!ai` → เปลี่ยนไปเช็ก `message.content.startswith("!ai")`
+| ทาง | ทริกเกอร์ | จัดการที่ |
+|-----|----------|-----------|
+| **แชท AI** | ถูก **@mention** เท่านั้น (กันไม่ให้ตอบทุกข้อความจนรก) | ฟังก์ชัน `on_message` |
+| **คำสั่งยูทิลิตี้** | **slash command `/`** ที่ลงทะเบียนกับ Discord | `@client.tree.command(...)` |
+
+> **เดิมคำสั่งเป็นแบบ `!`** (บอทอ่านข้อความเองแล้วเช็ก `startswith("!...")`) — เปลี่ยนมาเป็น **`/`** เพราะ Discord มีเมนู/autocomplete ให้ และไม่ต้องพึ่ง Message Content Intent สำหรับคำสั่ง ตอนนี้ไม่มีคำสั่ง `!` เหลือแล้ว
+
+**อยากปรับเงื่อนไขแชท AI** → แก้ใน `on_message`:
+- ตอบทุกข้อความในห้อง → ลบเงื่อนไข `if client.user not in message.mentions: return`
+- ตอบเฉพาะบางห้อง → เช็ก `message.channel.id` ให้ตรงกับห้องที่ต้องการ
+
+**อยากเพิ่มคำสั่ง `/` ใหม่** → เพิ่มฟังก์ชันใต้ `@client.tree.command(name=..., description=...)` แล้วบอทจะ sync ขึ้น Discord ให้เองตอนเริ่ม (ถ้าตั้ง `GUILD_ID` จะโผล่ทันที)
 
 ---
 
@@ -149,10 +158,42 @@ python bot.py
 
 ---
 
+## การตั้งค่าใน `.env`
+
+ใส่เฉพาะตัวที่อยากเปลี่ยนจากค่าเริ่มต้น (นอกจาก 2 ตัวแรกที่จำเป็นเสมอ) — ที่เหลือมี default ในโค้ดอยู่แล้ว
+
+| ตัวแปร | หน้าที่ | ค่าเริ่มต้น |
+|--------|--------|-------------|
+| `DISCORD_BOT_TOKEN` | โทเคนบอท (**จำเป็น**) | — |
+| `OPENROUTER_API_KEY` | คีย์ OpenRouter (**จำเป็น**) | — |
+| `OPENROUTER_MODEL` | โมเดล (คั่นด้วย `,` = ลำดับสำรอง) | gemma-31b,…,openrouter/free |
+| `SYSTEM_PROMPT` | บุคลิก/กฎของบอท | (ค่าในโค้ด) |
+| `TEMPERATURE` | ความสุ่ม 0.5–0.7 = นิสัยนิ่ง | 0.6 |
+| `MAX_TOKENS` | ความยาวคำตอบสูงสุด | 1024 |
+| `HISTORY_LIMIT` | จำนวนข้อความที่จำ | 10 |
+| `USER_COOLDOWN_SECONDS` | คูลดาวน์ต่อผู้ใช้ | 5 |
+| `TZ_OFFSET_HOURS` | เขตเวลา (ไทย = 7) | 7 |
+| `HISTORY_DB` | ไฟล์ความจำ | chat_history.db |
+| `ENABLE_MEMBERS` | อ่านสมาชิก/role (ต้องเปิด intent) | false |
+| `GUILD_ID` | ให้คำสั่ง `/` โผล่ทันที | (ว่าง) |
+| `JOIN_SOUND` / `KURU_SOUND` | ไฟล์เสียง `/join` / `/kuru` | sounds/join.mp3, sounds/kuru.mp3 |
+| `FFMPEG_PATH` | ที่อยู่ ffmpeg | ffmpeg |
+
+---
+
+## เสียง (voice) — ถ้าจะใช้ `/join` `/kuru`
+
+1. ลงไลบรารีเสียง: `pip install -U "discord.py[voice]"` (ได้ davey + PyNaCl)
+2. ลง **FFmpeg**: `winget install Gyan.FFmpeg` แล้ว **เปิด PowerShell ใหม่** (เช็ก `ffmpeg -version`)
+3. สร้างโฟลเดอร์ `sounds/` แล้ววางไฟล์ `join.mp3` / `kuru.mp3`
+4. สิทธิ์ใน Portal: เชิญบอทใหม่พร้อม `Connect` + `Speak` (ดูขั้นที่ 1)
+
+---
+
 ## ⚠️ เรื่องค่าใช้จ่าย (OpenRouter)
 
-- **โมเดลฟรี** (ลงท้าย `:free`) — ใช้ฟรี แต่มีลิมิตจำนวนครั้งต่อวัน พอสำหรับเล่น/ทดสอบ
-- **โมเดลเสียเงิน** — จ่ายตาม token ที่ใช้จริง (เติมเครดิตล่วงหน้า ไม่ใช่รายเดือน)
+- **โมเดลฟรี** (ลงท้าย `:free`) — ฟรี แต่จำกัด **~50 ครั้ง/วันต่อบัญชี** (รีเซ็ต 07:00 น. เวลาไทย = เที่ยงคืน UTC) พอสำหรับเล่น/ทดสอบ
+- **โมเดลเสียเงิน** — จ่ายตาม token ที่ใช้จริง (เติมเครดิตล่วงหน้า ไม่ใช่รายเดือน) ไม่ติดลิมิตฟรีรายวัน
 
 กลไกกันเงิน/กันสแปมที่ใส่ไว้ในโค้ดแล้ว:
 
