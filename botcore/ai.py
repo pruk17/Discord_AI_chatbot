@@ -57,6 +57,7 @@ async def ask_model(user_text: str, author: str, guild) -> tuple[str, str | None
             continue
 
         raw = (response.choices[0].message.content or "").strip()
+        log.info("RAW MODEL OUTPUT: %r", raw)
         reply = memory.apply_and_strip_facts(raw)
         reply, speak_text = memory.extract_speech(reply)
         if not reply:

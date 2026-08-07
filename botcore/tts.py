@@ -20,18 +20,18 @@ log = logging.getLogger(config.LOGGER_NAME)
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
-async def _synthesize(text: str) -> bytes | None:
+async def _synthesize(text: str, speaker_id: int) -> bytes | None:
     """Call VOICEVOX and return WAV audio bytes (or None on failure)."""
     try:
         async with httpx.AsyncClient(timeout=30) as http:
             query = await http.post(
                 f"{config.VOICEVOX_URL}/audio_query",
-                params={"text": text, "speaker": config.VOICEVOX_SPEAKER},
+                params={"text": text, "speaker": speaker_id},
             )
             query.raise_for_status()
             audio = await http.post(
                 f"{config.VOICEVOX_URL}/synthesis",
-                params={"speaker": config.VOICEVOX_SPEAKER},
+                params={"speaker": speaker_id},
                 json=query.json(),
             )
             audio.raise_for_status()
@@ -46,10 +46,18 @@ async def speak(voice_client, text: str) -> None:
     """Synthesize `text` with VOICEVOX and play it through the voice client."""
     if not config.TTS_ENABLED or voice_client is None:
         return
+
+    speaker_id = config.VOICEVOX_SPEAKER
+    if "|" in text:
+        parts = text.split("|", 1)
+        if parts[0].strip().isdigit():
+            speaker_id = int(parts[0].strip())
+            text = parts[1]
+
     clean = _TAG_RE.sub("", text).strip()[: config.TTS_MAX_CHARS]
     if not clean:
         return
-    audio = await _synthesize(clean)
+    audio = await _synthesize(clean, speaker_id)
     if audio is None:
         return
 

@@ -65,10 +65,16 @@ SYSTEM_PROMPT = os.getenv(
 # the model to also provide a Japanese spoken version (read aloud by VOICEVOX)
 # while the visible text stays in the user's language.
 SAY_NOTE = (
-    "\n\nYou are currently in a voice channel. At the very end of your reply, ALWAYS add a "
-    "natural, casual Japanese spoken version of your reply in this exact format: "
-    "[[SAY: <japanese>]] — it is read aloud by a Japanese voice, so make it sound natural "
-    "(not a word-for-word translation) and put no emojis or symbols inside it."
+    "\n\nYou are currently in a voice channel. You MUST add a Japanese spoken version at the end of your reply. "
+    "You MUST include an Emotion ID. "
+    "Available IDs: 20(Normal), 66(Sexy), 77(Crying), 78(Angry), 79(Happy), 80(Relaxed).\n"
+    "Format MUST be EXACTLY: [[SAY: <ID>|<Japanese_Text>]]\n"
+    "[[SAY: <ID>|<Japanese_Text>]] — it is read aloud by a Japanese voice, so make it sound natural "
+    "Example 1: [[SAY: 78|もう、バカ！]]\n"
+    "Example 2: [[SAY: 20|嬉しいわ！]]\n"
+    "DO NOT output just [[SAY: text]]. The ID number and the '|' separator are MANDATORY."
+    "The chosen Emotion ID MUST strictly match the mood and tone of your text reply. (e.g., if you act angry, you MUST use 78)."
+    "DO NOT put emojis, english words, or symbols inside [[SAY: ...]] block."
 )
 
 # Appended to the system prompt: explains the "Name:" labeling + fact tags.
