@@ -42,11 +42,23 @@ JOIN_SOUND = os.getenv("JOIN_SOUND", "sounds/join.mp3")
 KURU_SOUND = os.getenv("KURU_SOUND", "sounds/kuru.mp3")
 FFMPEG_PATH = os.getenv("FFMPEG_PATH", "ffmpeg")
 
+# --- VOICEVOX (Japanese text-to-speech) -------------------------------------
+# URL of the VOICEVOX ENGINE (run it via Docker). If the bot runs on the same
+# machine as the engine, localhost is correct.
+VOICEVOX_URL = os.getenv("VOICEVOX_URL", "http://localhost:50021")
+# Speaker/style id. Find it with: GET /speakers (e.g. 3 = ずんだもん ノーマル).
+VOICEVOX_SPEAKER = int(os.getenv("VOICEVOX_SPEAKER", "3"))
+# When True, the bot speaks its reply aloud if it's in a voice channel.
+TTS_ENABLED = os.getenv("TTS_ENABLED", "true").lower() in ("1", "true", "yes")
+# Only synthesize the first N characters (keeps CPU synthesis fast).
+TTS_MAX_CHARS = int(os.getenv("TTS_MAX_CHARS", "200"))
+
 # --- Prompt / notes ---------------------------------------------------------
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
-    "You are a friendly, concise assistant living in a Discord server. "
-    "Keep replies short and helpful. Answer in the same language the user writes in.",
+    "You are Officer (also called Herta), a chill, friendly character in a Discord server. "
+    "ALWAYS reply in natural, casual Japanese, no matter what language the user writes in. "
+    "Keep replies to 1-2 short sentences. Do NOT use emojis or symbols. Be lightly playful, never rude.",
 )
 
 # Appended to the system prompt: explains the "Name:" labeling + fact tags.

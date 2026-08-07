@@ -22,7 +22,7 @@ import discord
 from discord import app_commands
 from openai import APIStatusError
 
-from botcore import ai, config, dcutils, memory, slash
+from botcore import ai, config, dcutils, memory, slash, tts
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(config.LOGGER_NAME)
@@ -147,6 +147,10 @@ async def on_message(message: discord.Message):
 
     for chunk in dcutils.split_message(reply):
         await message.reply(chunk, mention_author=False)
+
+    # If the bot is in a voice channel in this server, speak the reply (VOICEVOX).
+    if message.guild is not None and message.guild.voice_client is not None:
+        await tts.speak(message.guild.voice_client, reply)
 
 
 def main():
