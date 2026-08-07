@@ -1,0 +1,75 @@
+"""Central configuration: loads .env and exposes all settings + constants.
+
+This is the only place that reads environment variables, so every other
+module imports its settings from here.
+"""
+
+import datetime
+import os
+import re
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# --- Required secrets (no default → the bot refuses to start if missing) ----
+DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
+OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
+
+# --- Models (comma-separated; tried left-to-right, fallback on 429/errors) --
+OPENROUTER_MODEL = os.getenv(
+    "OPENROUTER_MODEL",
+    "google/gemma-4-31b-it:free,"
+    "google/gemma-4-26b-a4b-it:free,"
+    "openai/gpt-oss-20b:free,"
+    "openrouter/free",
+)
+MODELS = [m.strip() for m in OPENROUTER_MODEL.split(",") if m.strip()]
+
+# --- Behaviour --------------------------------------------------------------
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.6"))
+HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "10"))
+USER_COOLDOWN_SECONDS = float(os.getenv("USER_COOLDOWN_SECONDS", "5"))
+DB_PATH = os.getenv("HISTORY_DB", "chat_history.db")
+TZ_OFFSET_HOURS = float(os.getenv("TZ_OFFSET_HOURS", "7"))
+LOCAL_TZ = datetime.timezone(datetime.timedelta(hours=TZ_OFFSET_HOURS))
+ENABLE_MEMBERS = os.getenv("ENABLE_MEMBERS", "false").lower() in ("1", "true", "yes")
+GUILD_ID = os.getenv("GUILD_ID", "").strip()
+
+# --- Voice ------------------------------------------------------------------
+JOIN_SOUND = os.getenv("JOIN_SOUND", "sounds/join.mp3")
+KURU_SOUND = os.getenv("KURU_SOUND", "sounds/kuru.mp3")
+FFMPEG_PATH = os.getenv("FFMPEG_PATH", "ffmpeg")
+
+# --- Prompt / notes ---------------------------------------------------------
+SYSTEM_PROMPT = os.getenv(
+    "SYSTEM_PROMPT",
+    "You are a friendly, concise assistant living in a Discord server. "
+    "Keep replies short and helpful. Answer in the same language the user writes in.",
+)
+
+# Appended to the system prompt: explains the "Name:" labeling + fact tags.
+MEMORY_NOTE = (
+    "\n\nEach message in the history is prefixed with the speaker's Discord name "
+    "(for example 'Alice: hello'). Remember who said what, and decide for yourself "
+    "whether earlier information is relevant to the current question."
+    "\n\nYou also have a long-term fact memory that is always visible to you below. "
+    "To save a durable fact, output a tag like [[REMEMBER key = value]] "
+    "(e.g. [[REMEMBER Alice's name = Bob]]). Reusing the same key overwrites the old "
+    "value. To delete a fact, output [[FORGET key]]. Only remember durable, useful "
+    "facts (names, preferences, important details) — not small talk. These tags are "
+    "hidden from the user, so also reply normally in your message."
+    "\n\nIf a message is unclear, ask a short, friendly clarifying question instead of "
+    "only saying you don't understand."
+)
+
+# Tags the model may emit to manage its fact memory.
+REMEMBER_RE = re.compile(r"\[\[\s*REMEMBER\s+(.+?)\s*=\s*(.+?)\s*\]\]", re.IGNORECASE | re.DOTALL)
+FORGET_RE = re.compile(r"\[\[\s*FORGET\s+(.+?)\s*\]\]", re.IGNORECASE | re.DOTALL)
+
+# Discord hard-limits a single message to 2000 characters.
+DISCORD_MESSAGE_LIMIT = 2000
+
+# Shared logger name used across all modules.
+LOGGER_NAME = "discord-ai-bot"
