@@ -18,8 +18,12 @@ client = AsyncOpenAI(
 )
 
 
-async def ask_model(user_text: str, author: str, guild) -> str:
-    """Send system prompt + facts + roster + history + message; fall back on errors."""
+async def ask_model(user_text: str, author: str, guild) -> tuple[str, str | None]:
+    """Send system prompt + facts + roster + history + message; fall back on errors.
+
+    Returns (visible_text, japanese_to_speak). The text is in the user's language;
+    the Japanese part is present only when the bot is in a voice channel.
+    """
     now = datetime.datetime.now(config.LOCAL_TZ)
     time_note = (
         f"\n\nThe current date and time is {now:%Y-%m-%d %H:%M} ({now:%A}). "
@@ -27,8 +31,12 @@ async def ask_model(user_text: str, author: str, guild) -> str:
     )
     # Only attach the (potentially large) roster when the question seems to need it.
     roster = memory.server_roster(guild) if memory.needs_roster(user_text) else ""
+    # Ask for a Japanese spoken version only when we're actually going to speak.
+    in_voice = config.TTS_ENABLED and guild is not None and guild.voice_client is not None
+    say_note = config.SAY_NOTE if in_voice else ""
     system_content = (
-        config.SYSTEM_PROMPT + config.MEMORY_NOTE + time_note + roster + memory.facts_block()
+        config.SYSTEM_PROMPT + config.MEMORY_NOTE + say_note + time_note
+        + roster + memory.facts_block()
     )
     messages = [{"role": "system", "content": system_content}]
     messages.extend(memory.format_for_model(e) for e in memory.shared_history)
@@ -50,8 +58,9 @@ async def ask_model(user_text: str, author: str, guild) -> str:
 
         raw = (response.choices[0].message.content or "").strip()
         reply = memory.apply_and_strip_facts(raw)
+        reply, speak_text = memory.extract_speech(reply)
         if not reply:
-            reply = "Got it! 👍"
+            reply = "..."
 
         memory.remember_turn(user_text, author, reply)
 
@@ -59,6 +68,6 @@ async def ask_model(user_text: str, author: str, guild) -> str:
         if usage:
             log.info("Reply via %s: in=%s out=%s tokens",
                      model, usage.prompt_tokens, usage.completion_tokens)
-        return reply
+        return reply, speak_text
 
     raise last_error if last_error else RuntimeError("No models configured")

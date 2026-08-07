@@ -57,8 +57,18 @@ TTS_MAX_CHARS = int(os.getenv("TTS_MAX_CHARS", "200"))
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
     "You are Officer (also called Herta), a chill, friendly character in a Discord server. "
-    "ALWAYS reply in natural, casual Japanese, no matter what language the user writes in. "
-    "Keep replies to 1-2 short sentences. Do NOT use emojis or symbols. Be lightly playful, never rude.",
+    "Reply in the SAME language the user writes in (Thai to Thai, Japanese to Japanese, etc.). "
+    "Keep replies to 1-2 short sentences. Be lightly playful, never rude.",
+)
+
+# Added to the system prompt ONLY when the bot is in a voice channel: it asks
+# the model to also provide a Japanese spoken version (read aloud by VOICEVOX)
+# while the visible text stays in the user's language.
+SAY_NOTE = (
+    "\n\nYou are currently in a voice channel. At the very end of your reply, ALWAYS add a "
+    "natural, casual Japanese spoken version of your reply in this exact format: "
+    "[[SAY: <japanese>]] — it is read aloud by a Japanese voice, so make it sound natural "
+    "(not a word-for-word translation) and put no emojis or symbols inside it."
 )
 
 # Appended to the system prompt: explains the "Name:" labeling + fact tags.
@@ -79,6 +89,8 @@ MEMORY_NOTE = (
 # Tags the model may emit to manage its fact memory.
 REMEMBER_RE = re.compile(r"\[\[\s*REMEMBER\s+(.+?)\s*=\s*(.+?)\s*\]\]", re.IGNORECASE | re.DOTALL)
 FORGET_RE = re.compile(r"\[\[\s*FORGET\s+(.+?)\s*\]\]", re.IGNORECASE | re.DOTALL)
+# The Japanese spoken version for TTS (kept out of the visible text).
+SAY_RE = re.compile(r"\[\[\s*SAY:\s*(.+?)\s*\]\]", re.IGNORECASE | re.DOTALL)
 
 # Discord hard-limits a single message to 2000 characters.
 DISCORD_MESSAGE_LIMIT = 2000

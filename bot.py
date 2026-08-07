@@ -115,7 +115,7 @@ async def on_message(message: discord.Message):
 
     try:
         async with message.channel.typing():
-            reply = await ai.ask_model(user_text, author_name, message.guild)
+            reply, speak_text = await ai.ask_model(user_text, author_name, message.guild)
     except APIStatusError as exc:
         log.exception("OpenRouter API error")
         if exc.status_code == 429:
@@ -148,9 +148,10 @@ async def on_message(message: discord.Message):
     for chunk in dcutils.split_message(reply):
         await message.reply(chunk, mention_author=False)
 
-    # If the bot is in a voice channel in this server, speak the reply (VOICEVOX).
-    if message.guild is not None and message.guild.voice_client is not None:
-        await tts.speak(message.guild.voice_client, reply)
+    # If the bot is in a voice channel and the model gave a Japanese version,
+    # speak that (the visible text stays in the user's language).
+    if message.guild is not None and message.guild.voice_client is not None and speak_text:
+        await tts.speak(message.guild.voice_client, speak_text)
 
 
 def main():

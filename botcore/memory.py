@@ -138,6 +138,18 @@ def apply_and_strip_facts(reply: str) -> str:
     return reply.strip()
 
 
+def extract_speech(reply: str) -> tuple[str, str | None]:
+    """Split out the [[SAY: <japanese>]] spoken version.
+
+    Returns (visible_text, japanese_to_speak). The visible text keeps the user's
+    language; the Japanese part (or None if the model didn't add one) is spoken.
+    """
+    match = config.SAY_RE.search(reply)
+    say = match.group(1).strip() if match else None
+    visible = config.SAY_RE.sub("", reply).strip()
+    return visible, say
+
+
 # --- server roster (members + roles) ---------------------------------------
 # Keywords that suggest a message needs the roster; only then do we attach it,
 # to avoid wasting hundreds of tokens on unrelated questions.
