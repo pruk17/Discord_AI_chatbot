@@ -187,17 +187,18 @@ def register(client: discord.Client) -> None:
 
     @tree.command(name="join", description="ให้บอทเข้าช่องเสียงที่คุณอยู่ แล้วเล่นเสียงทักทาย")
     async def slash_join(interaction: discord.Interaction):
+        # Connecting to voice can take several seconds; defer so the interaction
+        # token doesn't expire (Discord requires a response within 3s).
+        await interaction.response.defer()
         voice_state = getattr(interaction.user, "voice", None)
         if interaction.guild is None or voice_state is None or voice_state.channel is None:
-            await interaction.response.send_message(
-                "เข้าช่องเสียงก่อนนะ แล้วค่อยเรียกฉัน 🔊", ephemeral=True
-            )
+            await interaction.followup.send("เข้าช่องเสียงก่อนนะ แล้วค่อยเรียกฉัน 🔊", ephemeral=True)
             return
         channel = voice_state.channel
         existing = interaction.guild.voice_client
         # Already in the same channel? Do nothing (guards against /join spam).
         if existing is not None and existing.channel == channel:
-            await interaction.response.send_message("ฉันอยู่ในช่องนี้อยู่แล้วนะ 🔊", ephemeral=True)
+            await interaction.followup.send("ฉันอยู่ในช่องนี้อยู่แล้วนะ 🔊", ephemeral=True)
             return
         try:
             if existing is not None:
@@ -205,16 +206,16 @@ def register(client: discord.Client) -> None:
             else:
                 await channel.connect()
         except discord.Forbidden:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "ฉันไม่มีสิทธิ์เข้าช่องนี้ (ต้องมี Connect + Speak)", ephemeral=True
             )
             return
         except Exception:
             log.exception("Failed to join voice channel")
-            await interaction.response.send_message("เข้าช่องเสียงไม่สำเร็จ ลองใหม่นะ", ephemeral=True)
+            await interaction.followup.send("เข้าช่องเสียงไม่สำเร็จ ลองใหม่นะ", ephemeral=True)
             return
         note = sounds.play_sound(interaction.guild.voice_client, config.JOIN_SOUND)
-        await interaction.response.send_message(f"เข้าช่อง **{channel.name}** แล้ว 🔊{note}")
+        await interaction.followup.send(f"เข้าช่อง **{channel.name}** แล้ว 🔊{note}")
 
     @tree.command(name="leave", description="ให้บอทออกจากช่องเสียง")
     async def slash_leave(interaction: discord.Interaction):
@@ -227,28 +228,27 @@ def register(client: discord.Client) -> None:
 
     @tree.command(name="kuru", description="เล่นเสียง kuru 🔊")
     async def slash_kuru(interaction: discord.Interaction):
+        await interaction.response.defer()  # joining voice can take >3s
         if interaction.guild is None:
-            await interaction.response.send_message("ใช้ในเซิร์ฟเวอร์เท่านั้นนะ", ephemeral=True)
+            await interaction.followup.send("ใช้ในเซิร์ฟเวอร์เท่านั้นนะ", ephemeral=True)
             return
         voice_client = interaction.guild.voice_client
         # Not in voice yet? Join the caller's channel first.
         if voice_client is None:
             voice_state = getattr(interaction.user, "voice", None)
             if voice_state is None or voice_state.channel is None:
-                await interaction.response.send_message(
-                    "เข้าช่องเสียงก่อน หรือเรียก /join นะ", ephemeral=True
-                )
+                await interaction.followup.send("เข้าช่องเสียงก่อน หรือเรียก /join นะ", ephemeral=True)
                 return
             try:
                 voice_client = await voice_state.channel.connect()
             except discord.Forbidden:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "ฉันไม่มีสิทธิ์เข้าช่องนี้ (ต้องมี Connect + Speak)", ephemeral=True
                 )
                 return
             except Exception:
                 log.exception("Failed to join for /kuru")
-                await interaction.response.send_message("เข้าช่องเสียงไม่สำเร็จ", ephemeral=True)
+                await interaction.followup.send("เข้าช่องเสียงไม่สำเร็จ", ephemeral=True)
                 return
         note = sounds.play_sound(voice_client, config.KURU_SOUND)
-        await interaction.response.send_message(f"kuru~ 🔊{note}")
+        await interaction.followup.send(f"kuru~ 🔊{note}")
