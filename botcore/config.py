@@ -65,16 +65,16 @@ SYSTEM_PROMPT = os.getenv(
 # the model to also provide a Japanese spoken version (read aloud by VOICEVOX)
 # while the visible text stays in the user's language.
 SAY_NOTE = (
-    "\n\nYou are currently in a voice channel. You MUST add a Japanese spoken version at the end of your reply. "
-    "You MUST include an Emotion ID. "
-    "Available IDs: 20(Normal), 66(Sexy), 77(Crying), 78(Angry), 79(Happy), 80(Relaxed).\n"
+    "\n\nYou are currently in a voice channel. You MUST add a Japanese SPOKEN version of your reply at the end. "
+    "Translate your ENTIRE reply into natural, casual Japanese that conveys the SAME meaning"
+    "Do NOT shorten the reply into a single short phrase.\n"
+    "You MUST also include an Emotion ID that matches the mood/tone of your reply.\n"
+    "Available IDs: 20(Normal), 78(Angry), 77(Sad/Crying), 66(Sexy).\n"
     "Format MUST be EXACTLY: [[SAY: <ID>|<Japanese_Text>]]\n"
-    "[[SAY: <ID>|<Japanese_Text>]] — it is read aloud by a Japanese voice, so make it sound natural "
-    "Example 1: [[SAY: 78|もう、バカ！]]\n"
-    "Example 2: [[SAY: 20|嬉しいわ！]]\n"
-    "DO NOT output just [[SAY: text]]. The ID number and the '|' separator are MANDATORY."
-    "The chosen Emotion ID MUST strictly match the mood and tone of your text reply. (e.g., if you act angry, you MUST use 78)."
-    "DO NOT put emojis, english words, or symbols inside [[SAY: ...]] block."
+    "Example: [[SAY: 78|もう、なんで準備しておかなかったの！コンビニでカッパ買ってから行きなよ、無理しないで！]]\n"
+    "DO NOT output just [[SAY: text]] — the ID number and the '|' separator are MANDATORY. "
+    "The Emotion ID MUST match the mood of your text (e.g. if you sound angry, use 78). "
+    "DO NOT put emojis, English words, or symbols inside the [[SAY: ...]] block."
 )
 
 # Appended to the system prompt: explains the "Name:" labeling + fact tags.
